@@ -146,7 +146,7 @@ def main():
     # optimizer = torch.optim.Adam(params, args.lr, weight_decay=5e-4)
 
     # dataset
-    args.data_path = '../data/pixel/'
+    args.data_path = '../data/'
     image_root = args.data_path + 'train/'
     gt_root = args.data_path + 'gt/'
     train_loader = pixel_loader(image_root, gt_root, args.batch_size, args.train_size)
