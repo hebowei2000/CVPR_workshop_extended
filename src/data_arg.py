@@ -2,11 +2,12 @@ import numpy as np
 import cv2
 import glob
 import argparse
+import os
 
 def main():
     1
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path',type=str,default='../data/result',help='data argument file')
+    parser.add_argument('--path',type=str,default='../data/train_argu',help='data argument file')
     args = parser.parse_args()
 
 

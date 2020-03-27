@@ -11,20 +11,24 @@ gaussian = np.zeros([5,5])
 for i in range(5):
     for j in range(5):
         gaussian[i,j] = math.exp(-1/2 * (np.square(i-3)/np.square(sigma1)
-            +(np.square(j-3)/np.squre(sigma2)))) / (2*math.pi*sigma1*sigma2)
+            +(np.square(j-3)/np.square(sigma2)))) / (2*math.pi*sigma1*sigma2)
         sum = sum + gaussian[i,j]
 
 gaussian = gaussian/sum
 
-PATH = '../data/result25'
+PATH = '../data/exp_9/test_canny'
 paths = glob.glob(os.path.join(PATH,'*.png'))
 paths.sort()
+
+def rgb2gray(rgb):
+    return np.dot(rgb[...,:3],[0.299,0.587,0.114])
 
 #canny operator process
 for path in paths:
     #Step1:Gaussion filter
     img = cv2.imread(path)
-    W,H = img.shape
+    img = rgb2gray(img)
+    W, H = img.shape
     new_gray = np.zeros([W-5,H-5])
     for i in range(W-5):
         for j in range(H-5):
@@ -56,7 +60,7 @@ for path in paths:
                 gradTemp = d[i,j]
 
                 # if gradient value on the y axis is larger
-                if np.abs(graY) > np.abs(gradX):
+                if np.abs(gradY) > np.abs(gradX):
                     weight = np.abs(gradX)/np.abs(gradY)
                     grad2 = d[i-1,j]
                     grad4 = d[i+1,j]
@@ -85,12 +89,12 @@ for path in paths:
                         grad3 = d[i+1,j+1]
 
           
-            gradTemp1 = weight*grad1 + (1-weight)*grad2
-            gradTemp2 = weight*grad3 + (1-weight)*grad4
-            if gradTemp >= gradTemp1 and gradTemp >= gradTemp2:
-                NMS[i,j] = gradTemp
-            else:
-                NMS[i,j] = 0
+                gradTemp1 = weight * grad1 + (1-weight) * grad2
+                gradTemp2 = weight * grad3 + (1-weight) * grad4
+                if gradTemp >= gradTemp1 and gradTemp >= gradTemp2:
+                    NMS[i,j] = gradTemp
+                else:
+                    NMS[i,j] = 0
 
 
     #step4 bi-threshold algorithm detection and link the borders
@@ -109,8 +113,4 @@ for path in paths:
                     or (NMS[i,[j-1,j+1]] < TH).any()):
                 DT[i,j] = 1
    #store the canny operated image
-   cv2.imwrite(path,DT)
-                    
-
-
-
+    cv2.imwrite(path,DT)
