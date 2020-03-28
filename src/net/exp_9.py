@@ -17,6 +17,8 @@ class exp_9(nn.Module):
         self.reduce_s3 = Reduction(512, channel)
         self.reduce_s4 = Reduction(1024, channel)
         self.reduce_s5 = Reduction(2048, channel)
+       # self.reduce_s6 = Reduction(4096, channel)
+       # self.reduce_s7 = Reduction(8192, channel)
 
         self.decoder_0 = self._make_layer(Bottle2neck, channel // 4, 3, stride=1)
         self.decoder_1 = self._make_layer(Bottle2neck, channel // 4, 3, stride=1)
@@ -24,6 +26,8 @@ class exp_9(nn.Module):
         self.decoder_3 = self._make_layer(Bottle2neck, channel // 4, 3, stride=1)
         self.decoder_4 = self._make_layer(Bottle2neck, channel // 4, 3, stride=1)
         self.decoder_5 = self._make_layer(Bottle2neck, channel // 4, 3, stride=1)
+      #  self.decoder_6 = self._make_layer(Bottle2neck, channel // 4, 3, stride=1)
+      #  self.decoder_7 = self._make_layer(Bottle2neck, channel // 4, 3, stride=1)
 
         self.decoder_6 = self._make_layer(Bottle2neck, channel // 4, 3, stride=1)
         self.decoder_7 = self._make_layer(Bottle2neck, channel // 4, 3, stride=1)
@@ -31,6 +35,8 @@ class exp_9(nn.Module):
         self.decoder_9 = self._make_layer(Bottle2neck, channel // 4, 3, stride=1)
         self.decoder_10 = self._make_layer(Bottle2neck, channel // 4, 3, stride=1)
         self.decoder_11 = self._make_layer(Bottle2neck, channel // 4, 3, stride=1)
+       # self.decoder_14 = self._make_layer(Bottle2neck, channel // 4, 3, stride=1)
+       # self.decoder_15 = self._make_layer(Bottel2neck, channel // 4, 3, stride=1)
 
         self.aspp_1 = ASPP(in_channel=2048, depth=2048)
         self.aspp_2 = ASPP(in_channel=channel, depth=channel)

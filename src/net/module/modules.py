@@ -325,6 +325,8 @@ class encoder(nn.Module):
         self.layer3 = self._make_layer(Bottleneck, 128, 6, stride=2)  # 32
         self.layer4 = self._make_layer(Bottleneck, 256, 3, stride=2)  # 16
         self.layer5 = self._make_layer(Bottleneck, 512, 3, stride=2)  # 8
+        self.layer6 = self._make_layer(Bottleneck, 1028,3, stride=2)  # 4
+        self.layer7 = self._make_layer(Bottleneck, 2046,3, stride=2)  #2
         weight_init(self)
 
     def _make_layer(self, block, planes, blocks, stride=1):
@@ -350,8 +352,10 @@ class encoder(nn.Module):
         out4 = self.layer3(out3)  # 1/ 16
         out5 = self.layer4(out4)  # 1/32
         out6 = self.layer5(out5)
+        out7 = self.layer6(out6)
+        out8 = self.layer7(out7)
 
-        return out1, out2, out3, out4, out5, out6
+        return out1, out2, out3, out4, out5, out6, out7, out8
 
 
 class Bottle2neck(nn.Module):
