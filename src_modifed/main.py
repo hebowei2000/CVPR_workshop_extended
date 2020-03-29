@@ -121,7 +121,7 @@ def test(model, epoch, args):
 def main():
     # init parameters
     parser = argparse.ArgumentParser()
-    parser.add_argument('--epoch', type=int, default=100, help='epoch number')
+    parser.add_argument('--epoch', type=int, default=300, help='epoch number')
     parser.add_argument('--lr', type=float, default=0.1, help='learning rate')
     parser.add_argument('--batch_size', type=int, default=8, help='training batch size')
     parser.add_argument('--train_size', type=int, default=256, help='training dataset size')
@@ -146,7 +146,7 @@ def main():
     # optimizer = torch.optim.Adam(params, args.lr, weight_decay=5e-4)
 
     # dataset
-    args.data_path = '../data/pixel/'
+    args.data_path = '../data/'
     image_root = args.data_path + 'train/'
     gt_root = args.data_path + 'gt/'
     train_loader = pixel_loader(image_root, gt_root, args.batch_size, args.train_size)
