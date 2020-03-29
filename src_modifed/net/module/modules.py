@@ -580,7 +580,7 @@ class encoder_w_dropout(nn.Module):
         self.dropout3 = nn.Dropout2d(0.5)
         self.layer4 = self._make_layer(Bottle2neck,256,3,stride=2) #16
         self.dropout4 = nn.Dropout2d(0.5)
-        self.layer5 = self._make_layer(Bottel2neck,512,3,stride=2) #8
+        self.layer5 = self._make_layer(Bottle2neck,512,3,stride=2) #8
         self.dropout5 = nn.Dropout2d(0.5)
         weight_init(self)
 
