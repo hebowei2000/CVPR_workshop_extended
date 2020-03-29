@@ -321,7 +321,7 @@ class CoordConv(nn.Module):
     def __init__(self, radius_channel, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
         super(CoordConv, self).__init__()
         self.addcoord = AddCoords(radius_channel=radius_channel)
-        self.conv = nn.Conv2d(in_planes, out_planes,
+        self.conv = nn.Conv2d(in_planes+3, out_planes,
                               kernel_size=kernel_size, stride=stride,
                               padding=padding, dilation=dilation, bias=False)
 
@@ -565,7 +565,6 @@ class encoder_w(nn.Module):
         out6 = self.layer5(out5)
 
         return out1, out2, out3, out4, out5, out6
-
 class encoder_w_dropout(nn.Module):
     def __init__(self):
         self.inplanes = 32
@@ -615,6 +614,69 @@ class encoder_w_dropout(nn.Module):
        
 
         return out1,out2,out3,out4,out5,out6
+
+class encoder_w_coord_dropout(nn.Module):
+    def __init__(self):
+        self.inplanes = 32
+        super(encoder_w_dropout,self).__init__()
+        self.conv = BasicConv2d(1,32,3,padding=1)
+        self.coord_0 = CoordConv(radius_channel=True, in_planes=32, out_planes=32, kernel_size=3, padding=1)
+        self.layer0 = self._make_layer(Bottle2neck,16,3,stride=2) #256
+        self.dropout0 = nn.Dropout2d(0.5)
+        self.coord_1 = CoordConv(radius_channel=True, in_planes=64, out_planes=64, kernel_size=3, padding=1)
+        self.layer1 = self._make_layer(Bottle2neck,32,3,stride=2) #128
+        self.dropout1 = nn.Dropout2d(0.5)
+        self.coord_2 = CoordConv(radius_channel=True, in_planes=128, out_planes=128, kernel_size=3, padding=1)
+        self.layer2 = self._make_layer(Bottle2neck,64,3,stride=2) #64
+        self.dropout2 = nn.Dropout2d(0.5)
+        self.coord_3 = CoordConv(radius_channel=True, in_planes=256, out_planes=256, kernel_size=3, padding=1)
+        self.layer3 = self._make_layer(Bottle2neck,128,3,stride=2) #32
+        self.dropout3 = nn.Dropout2d(0.5)
+        self.coord_4 = CoordConv(radius_channel=True, in_planes=512, out_planes=512, kernel_size=3, padding=1)
+        self.layer4 = self._make_layer(Bottle2neck,256,3,stride=2) #16
+        self.dropout4 = nn.Dropout2d(0.5)
+        self.coord_5 = CoordConv(radius_channel=True, in_planes=1024, out_planes=1024, kernel_size=3, padding=1)
+        self.layer5 = self._make_layer(Bottel2neck,512,3,stride=2) #8
+        self.dropout5 = nn.Dropout2d(0.5)
+        weight_init(self)
+
+    def _make_layer(self,block,planes,blocks,stride=1):
+        downsample = None
+        if stride !=1 or self.inplanes !=planes * block.expansion:
+            downsample = nn.Sequential(
+                    nn.AvgPool2d(kernel_size=stride,stride=stride,
+                        ceil_mode=True,count_include_pad=False),
+                    nn.Conv2d(self.inplanes,planes * block.expansion,
+                        kernel_size = 1,stride=1,bias=False),
+                    nn.BatchNorm2d(planes * block.expansion),
+                    )
+            layers = []
+            layers.append(block(self.inplanes,planes,stride,downsample=downsample,
+                stype = 'stage',baseWidth=6,scale=4))
+            self.inplanes = planes*block.expansion
+            for i in range(1,blocks):
+                layers.append(block(self.inplanes,planes,baseWidth=6,scale=4))
+
+            return nn.Sequential(*layers)
+    def forward(self,x):
+        x = self.conv(x)
+        x = self.coord_0(x)
+        out1 = self.dropout0(self.layer0(x))
+        out2 = self.coord_1(ou1)
+        out2 = self.dropout1(self.layer1(out2))
+        out3 = self.coord_2(out2)
+        out3 = self.dropout2(self.layer2(out3))
+        out4 = self.coord_3(out3)
+        out4 = self.dropout3(self.layer3(out4))
+        out5 = self.coord_4(out4)
+        out5 = self.dropout4(self.layer4(out5))
+        out6 = self.coord_5(out5)
+        out6 = self.dropout5(self.layer5(out6))
+
+
+        return out1,out2,out3,out4,out5,out6
+
+
 
 
 class FusionOutput(nn.Module):
