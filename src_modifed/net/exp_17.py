@@ -9,7 +9,7 @@ class exp_17(nn.Module):
     def __init__(self, channel=128):
         super(exp_17, self).__init__()
         self.channel = channel
-        self.encoder = encoder_w_coord_dropout()
+        self.encoder = encoder_w()
 
         self.reduce_s0 = Reduction(64, channel)
         self.reduce_s1 = Reduction(128, channel)

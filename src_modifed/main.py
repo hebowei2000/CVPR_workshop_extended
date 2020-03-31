@@ -44,8 +44,7 @@ def train(train_loader, model, optimizer, args):
     loss_sal_record, loss_l2_record, loss_dice_record = AvgMeter(), AvgMeter(), AvgMeter()
     total_step = len(train_loader)
 
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
-
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.2)
     global_step = 0
     for epoch in range(0, args.epoch):
         model.train()
@@ -67,7 +66,7 @@ def train(train_loader, model, optimizer, args):
                 loss_sal = nn.BCEWithLogitsLoss()(pred_sal, gts)
                 loss_l2 = nn.MSELoss()(pred_sal.sigmoid(), gts)
                 loss_dice = DiceLoss()(pred_sal.sigmoid(), gts)
-                loss = loss_l2 + loss_sal
+                loss = loss_l2 + loss_sal + 0.1*loss_dice
                 loss.backward()
 
                 optimizer.step()
