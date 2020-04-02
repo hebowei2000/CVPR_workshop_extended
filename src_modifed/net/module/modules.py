@@ -324,6 +324,7 @@ class CoordConv(nn.Module):
         self.conv = nn.Conv2d(in_planes+3, out_planes,
                               kernel_size=kernel_size, stride=stride,
                               padding=padding, dilation=dilation, bias=False)
+        weight_init(self)
 
     def forward(self, in_tensor):
         out = self.addcoord(in_tensor)
@@ -618,7 +619,7 @@ class encoder_w_dropout(nn.Module):
 class encoder_w_coord_dropout(nn.Module):
     def __init__(self):
         self.inplanes = 32
-        super(encoder_w_dropout,self).__init__()
+        super(encoder_w_coord_dropout,self).__init__()
         self.conv = BasicConv2d(1,32,3,padding=1)
         self.coord_0 = CoordConv(radius_channel=True, in_planes=32, out_planes=32, kernel_size=3, padding=1)
         self.layer0 = self._make_layer(Bottle2neck,16,3,stride=2) #256
@@ -1118,3 +1119,48 @@ class MultiFusionOutput(nn.Module):
         e = self.outpute(e1)
         s = self.outputs(s1)
         return s, e
+#Squeeze-and-Excitation networks
+class SELayer(nn.Module):
+    def __init__(self,channel,reduction=16):
+        super(SELayer,self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequencial(
+                nn.Linear(channel,channel // reduction, bias=False),
+                nn.ReLU(inpalce = True),
+                nn.Linear(channel // reduction, channel, bias=False),
+                nn.Sigmoid()
+                )
+    def forward(self,x):
+        b,c, _,_=x.size()
+        y = self.avg_pool(x).view(b,c)
+        y = self.fc(y).view(b,c,1,1)
+        return x*y*expand_as(x)
+
+#Selective kernel networks
+class SKLayer(nn.Module):
+    def __init__(self,features,WH,M,G,r,stride=1,L=32):
+        super(SKLayer,self).__init__()
+        d = max(init(features/r),L)
+        self.M = M
+        self.features = features
+        self.convs = nn.ModuleList([])
+        for i in range(M):
+            #use conv kernel with different sizes
+            self.convs.append(
+                    nn.Sequential(
+                        nn.Conv2d(features,
+                                  features,
+                                  kernel_size = 3 + i*2,
+                                  stride = stride
+                                  padding = 1 + i
+                                  groups=G),
+                                  nn.BatchNorm2d(features),
+                                  nn.ReLU(inplace=False))
+                    )
+        self.fc = nn.Linear(features, d)
+        self.fcs = nn.ModuleList([])
+        for i in range(M):
+            self.fcs.append(nn.Linear(d,features))
+        self.softmax = nn.Softmax(dim=1)
+   def forward(self,x):
+
