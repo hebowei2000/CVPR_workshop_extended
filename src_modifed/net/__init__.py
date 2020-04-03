@@ -2,6 +2,7 @@ from .baseline import *
 from .exp_1 import *
 from .exp_10 import *
 from .exp_17 import *
+from .exp_29 import *
 from .exp_2 import *
 from .exp_3 import *
 from .exp_4 import *

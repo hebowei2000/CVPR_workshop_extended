@@ -321,9 +321,10 @@ class CoordConv(nn.Module):
     def __init__(self, radius_channel, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
         super(CoordConv, self).__init__()
         self.addcoord = AddCoords(radius_channel=radius_channel)
-        self.conv = nn.Conv2d(in_planes, out_planes,
+        self.conv = nn.Conv2d(in_planes+3, out_planes,
                               kernel_size=kernel_size, stride=stride,
                               padding=padding, dilation=dilation, bias=False)
+        weight_init(self)
 
     def forward(self, in_tensor):
         out = self.addcoord(in_tensor)
@@ -335,7 +336,7 @@ class CoordConvTranspose(nn.Module):
     """CoordConvTranspose layer for segmentation tasks."""
 
     def __init__(self, radius_channel, *args, **kwargs):
-        super(CoordConvTranspose, self).__init__()
+        super(CoordConv, self).__init__()
         self.addcoord = AddCoords(radius_channel=radius_channel)
         self.convT = nn.ConvTranspose2d(*args, **kwargs)
 
@@ -565,117 +566,118 @@ class encoder_w(nn.Module):
         out6 = self.layer5(out5)
 
         return out1, out2, out3, out4, out5, out6
-
-
-class encoder_new(nn.Module):
+class encoder_w_dropout(nn.Module):
     def __init__(self):
         self.inplanes = 32
-        super(encoder_new, self).__init__()
-        self.conv = BasicConv2d(1, 32, 3, padding=1)
-        self.layer0 = self._make_layer(Bottle2neck, 16, 3, stride=2)  # 256
-        self.layer1 = self._make_layer(Bottle2neck, 32, 3, stride=2)  # 128
-        self.layer2 = self._make_layer(Bottle2neck, 64, 4, stride=2)  # 64
-        self.layer3 = self._make_layer(Bottle2neck, 128, 6, stride=2)  # 32
-        self.layer4 = self._make_layer(Bottle2neck, 256, 3, stride=2)  # 16
-        self.layer5 = self._make_layer(Bottle2neck, 512, 3, stride=2)  # 8
-        rate = 0.5
-        self.dropout_0 = nn.Dropout2d(rate)
-        self.dropout_1 = nn.Dropout2d(rate)
-        self.dropout_2 = nn.Dropout2d(rate)
-        self.dropout_3 = nn.Dropout2d(rate)
-        self.dropout_4 = nn.Dropout2d(rate)
-        self.dropout_5 = nn.Dropout2d(rate)
+        super(encoder_w_dropout,self).__init__()
+        self.conv = BasicConv2d(1,32,3,padding=1)
+        self.layer0 = self._make_layer(Bottle2neck,16,3,stride=2) #256
+        self.dropout0 = nn.Dropout2d(0.5)
+        self.layer1 = self._make_layer(Bottle2neck,32,3,stride=2) #128
+        self.dropout1 = nn.Dropout2d(0.5)
+        self.layer2 = self._make_layer(Bottle2neck,64,3,stride=2) #64
+        self.dropout2 = nn.Dropout2d(0.5)
+        self.layer3 = self._make_layer(Bottle2neck,128,3,stride=2) #32
+        self.dropout3 = nn.Dropout2d(0.5)
+        self.layer4 = self._make_layer(Bottle2neck,256,3,stride=2) #16
+        self.dropout4 = nn.Dropout2d(0.5)
+        self.layer5 = self._make_layer(Bottle2neck,512,3,stride=2) #8
+        self.dropout5 = nn.Dropout2d(0.5)
         weight_init(self)
 
-    def _make_layer(self, block, planes, blocks, stride=1):
+    def _make_layer(self,block,planes,blocks,stride=1):
         downsample = None
-        if stride != 1 or self.inplanes != planes * block.expansion:
+        if stride !=1 or self.inplanes !=planes * block.expansion:
             downsample = nn.Sequential(
-                nn.AvgPool2d(kernel_size=stride, stride=stride,
-                             ceil_mode=True, count_include_pad=False),
-                nn.Conv2d(self.inplanes, planes * block.expansion,
-                          kernel_size=1, stride=1, bias=False),
-                nn.BatchNorm2d(planes * block.expansion),
-            )
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample=downsample,
-                            stype='stage', baseWidth=6, scale=4))
-        self.inplanes = planes * block.expansion
-        for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes, baseWidth=6, scale=4))
+                    nn.AvgPool2d(kernel_size=stride,stride=stride,
+                        ceil_mode=True,count_include_pad=False),
+                    nn.Conv2d(self.inplanes,planes * block.expansion,
+                        kernel_size = 1,stride=1,bias=False),
+                    nn.BatchNorm2d(planes * block.expansion),
+                    )
+            layers = []
+            layers.append(block(self.inplanes,planes,stride,downsample=downsample,
+                stype = 'stage',baseWidth=6,scale=4))
+            self.inplanes = planes*block.expansion
+            for i in range(1,blocks):
+                layers.append(block(self.inplanes,planes,baseWidth=6,scale=4))
 
-        return nn.Sequential(*layers)
+            return nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self,x):
         x = self.conv(x)
-        out1 = self.layer0(x)
-        out1 = self.dropout_0(out1)
-        out2 = self.layer1(out1)
-        out2 = self.dropout_1(out2)
-        out3 = self.layer2(out2)  # 1/8
-        out3 = self.dropout_2(out3)
-        out4 = self.layer3(out3)  # 1/ 16
-        out4 = self.dropout_3(out4)
-        out5 = self.layer4(out4)  # 1/32
-        out5 = self.dropout_4(out5)
-        out6 = self.layer5(out5)
-        out6 = self.dropout_5(out6)
+        out1 = self.dropout0(self.layer0(x))
+        out2 = self.dropout1(self.layer1(out1))
+        out3 = self.dropout2(self.layer2(out2))
+        out4 = self.dropout3(self.layer3(out3))
+        out5 = self.dropout4(self.layer4(out4))
+        out6 = self.dropout5(self.layer5(out5))
+       
 
-        return out1, out2, out3, out4, out5, out6
+        return out1,out2,out3,out4,out5,out6
 
+class encoder_w_coord_dropout(nn.Module):
+    def __init__(self):
+        self.inplanes = 32
+        super(encoder_w_coord_dropout,self).__init__()
+        self.conv = BasicConv2d(1,32,3,padding=1)
+        self.coord_0 = CoordConv(radius_channel=True, in_planes=32, out_planes=32, kernel_size=3, padding=1)
+        self.layer0 = self._make_layer(Bottle2neck,16,3,stride=2) #256
+        self.dropout0 = nn.Dropout2d(0.5)
+        self.coord_1 = CoordConv(radius_channel=True, in_planes=64, out_planes=64, kernel_size=3, padding=1)
+        self.layer1 = self._make_layer(Bottle2neck,32,3,stride=2) #128
+        self.dropout1 = nn.Dropout2d(0.5)
+        self.coord_2 = CoordConv(radius_channel=True, in_planes=128, out_planes=128, kernel_size=3, padding=1)
+        self.layer2 = self._make_layer(Bottle2neck,64,3,stride=2) #64
+        self.dropout2 = nn.Dropout2d(0.5)
+        self.coord_3 = CoordConv(radius_channel=True, in_planes=256, out_planes=256, kernel_size=3, padding=1)
+        self.layer3 = self._make_layer(Bottle2neck,128,3,stride=2) #32
+        self.dropout3 = nn.Dropout2d(0.5)
+        self.coord_4 = CoordConv(radius_channel=True, in_planes=512, out_planes=512, kernel_size=3, padding=1)
+        self.layer4 = self._make_layer(Bottle2neck,256,3,stride=2) #16
+        self.dropout4 = nn.Dropout2d(0.5)
+        self.coord_5 = CoordConv(radius_channel=True, in_planes=1024, out_planes=1024, kernel_size=3, padding=1)
+        self.layer5 = self._make_layer(Bottel2neck,512,3,stride=2) #8
+        self.dropout5 = nn.Dropout2d(0.5)
+        weight_init(self)
 
-class sSE(nn.Module):
-    def __init__(self, out_channels):
-        super(sSE, self).__init__()
-        self.conv = BasicConv2d(in_planes=out_channels, out_planes=1, kernel_size=1, padding=0)
+    def _make_layer(self,block,planes,blocks,stride=1):
+        downsample = None
+        if stride !=1 or self.inplanes !=planes * block.expansion:
+            downsample = nn.Sequential(
+                    nn.AvgPool2d(kernel_size=stride,stride=stride,
+                        ceil_mode=True,count_include_pad=False),
+                    nn.Conv2d(self.inplanes,planes * block.expansion,
+                        kernel_size = 1,stride=1,bias=False),
+                    nn.BatchNorm2d(planes * block.expansion),
+                    )
+            layers = []
+            layers.append(block(self.inplanes,planes,stride,downsample=downsample,
+                stype = 'stage',baseWidth=6,scale=4))
+            self.inplanes = planes*block.expansion
+            for i in range(1,blocks):
+                layers.append(block(self.inplanes,planes,baseWidth=6,scale=4))
 
-    def forward(self, x):
+            return nn.Sequential(*layers)
+    def forward(self,x):
         x = self.conv(x)
-        # print('spatial',x.size())
-        x = F.sigmoid(x)
-        return x
+        x = self.coord_0(x)
+        out1 = self.dropout0(self.layer0(x))
+        out2 = self.coord_1(ou1)
+        out2 = self.dropout1(self.layer1(out2))
+        out3 = self.coord_2(out2)
+        out3 = self.dropout2(self.layer2(out3))
+        out4 = self.coord_3(out3)
+        out4 = self.dropout3(self.layer3(out4))
+        out5 = self.coord_4(out4)
+        out5 = self.dropout4(self.layer4(out5))
+        out6 = self.coord_5(out5)
+        out6 = self.dropout5(self.layer5(out6))
 
 
-class cSE(nn.Module):
-    def __init__(self, out_channels):
-        super(cSE, self).__init__()
-        self.conv1 = BasicConv2d(in_planes=out_channels, out_planes=int(out_channels / 2), kernel_size=1, padding=0)
-        self.conv2 = BasicConv2d(in_planes=int(out_channels / 2), out_planes=out_channels, kernel_size=1, padding=0)
-
-    def forward(self, x):
-        x = nn.AvgPool2d(x.size()[2:])(x)
-        # print('channel',x.size())
-        x = self.conv1(x)
-        x = F.relu(x)
-        x = self.conv2(x)
-        x = F.sigmoid(x)
-        return x
+        return out1,out2,out3,out4,out5,out6
 
 
-class Decoder(nn.Module):
-    def __init__(self, in_channels, channels, out_channels):
-        super(Decoder, self).__init__()
-        self.conv1 = BasicConv2d(in_channels, channels, kernel_size=3, padding=1)
-        self.conv2 = BasicConv2d(channels, out_channels, kernel_size=3, padding=1)
-        self.spatial_gate = sSE(out_channels)
-        self.channel_gate = cSE(out_channels)
-
-    def forward(self, x, e=None):
-        x = F.upsample(x, scale_factor=2, mode='bilinear', align_corners=True)
-        # print('x',x.size())
-        # print('e',e.size())
-        if e is not None:
-            x = torch.cat([x, e], 1)
-
-        x = F.relu(self.conv1(x), inplace=True)
-        x = F.relu(self.conv2(x), inplace=True)
-        # print('x_new',x.size())
-        g1 = self.spatial_gate(x)
-        # print('g1',g1.size())
-        g2 = self.channel_gate(x)
-        # print('g2',g2.size())
-        x = g1 * x + g2 * x
-        return x
 
 
 class FusionOutput(nn.Module):
@@ -1117,3 +1119,130 @@ class MultiFusionOutput(nn.Module):
         e = self.outpute(e1)
         s = self.outputs(s1)
         return s, e
+#Squeeze-and-Excitation networks
+class SELayer(nn.Module):
+    def __init__(self,channel,reduction=16):
+        super(SELayer,self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequencial(
+                nn.Linear(channel,channel // reduction, bias=False),
+                nn.ReLU(inpalce = True),
+                nn.Linear(channel // reduction, channel, bias=False),
+                nn.Sigmoid()
+                )
+    def forward(self,x):
+        b,c, _,_=x.size()
+        y = self.avg_pool(x).view(b,c)
+        y = self.fc(y).view(b,c,1,1)
+        return x*y*expand_as(x)
+
+#Selective kernel networks
+class SKLayer(nn.Module):
+    def __init__(self,features,WH,M,G,r,stride=1,L=32):
+        super(SKLayer,self).__init__()
+        d = max(init(features/r),L)
+        self.M = M
+        self.features = features
+        self.convs = nn.ModuleList([])
+        for i in range(M):
+            #use conv kernel with different sizes
+            self.convs.append(
+                    nn.Sequential(
+                        nn.Conv2d(features,
+                                  features,
+                                  kernel_size = 3 + i*2,
+                                  stride = stride
+                                  padding = 1 + i
+                                  groups=G),
+                                  nn.BatchNorm2d(features),
+                                  nn.ReLU(inplace=False))
+                    )
+        self.fc = nn.Linear(features, d)
+        self.fcs = nn.ModuleList([])
+        for i in range(M):
+            self.fcs.append(nn.Linear(d,features))
+        self.softmax = nn.Softmax(dim=1)
+   def forward(self,x):
+       for i, conv in enumerate(self.convs):
+           fea = conv(x).unsqueeze_(dim=1)
+           if i == 0:
+               feas = fea
+            else:
+                feas = touch.cat([feas, fea], dim=1)
+        fea_U = torch.sum(feas, dim=1)
+        fea_s = fea_U.mean(-1).mean(-1)
+        fea_z = self.fc(fea_s)
+        for i, fc in enumerate(self.fcs):
+           # print(i, fea_z.shape)
+            vector = fc(fea_z).unsqueeze_(dim=1)
+           # print(i,vector.shape)
+            if i == 0:
+                attention_vectors = vector
+            else:
+                attention_vectors = torch.cat([attention_vectors, vector],dim=1)
+        attention_vectors = self.softmax(attention_vectors)
+        attention_vectors = attention_vectors.unsqueeze(-1).unsqueeze(-1)
+        fea_v = (feas * attention_vectors).sum(dim=1)
+        return fea_v
+
+## Convolutional block attention module
+class ChannelAttention(nn.Module):
+    def _init__(self,in_planes,ratio=16):
+        super(ChannelAttention,self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.max_pool = nn.AdaptiveMaxPool2d(1)
+
+        self.sharedMLP = nn.Sequential(
+                nn.Conv2d(in_planes, in_planes // ratio, 1, bias = False),
+                nn.ReLU(),
+                nn.Conv2d(in_planes // ratio, in_planes, 1, bias = False))
+        seld.sigmoid = nn.Sigmoid()
+    def forward(self,x):
+        avgout = self.sharedMLP(self.avg_pool(x))
+        maxout = self.sharedMLP(self.max_pool(x))
+        return self.sigmoid(avgout + maxout)
+
+class SpatialAttention(nn.Module):
+    def __init__(self,kernel_size=7):
+        super(SpatialAttention,self).__init__()
+        assert kernel_size in (3,7),
+        padding = 3 if kernel_size = 7 else 1
+
+        self.conv = nn.Conv2d(2,1,kernel_size,padding = padding, bias = False)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self,x):
+        avgout = torch.mean(x,dim=1,keepdim=True)
+        maxout,_ = torch.max(x,dim=1,keepdim=True)
+        x = torch.cat([avgout,maxout],dim=1)
+        x = self.conv(x)
+        return self.sigmoid(x)
+
+class BasicBlock(nn.Module):
+    expansion = 1
+    def __init__(self,inplanes,planes,stride =1, downsample = None):
+        super(BasicBlock, self).__init__()
+        self.conv1 = conv3x3(inplanes, planes, stride)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = conv3x3(planes,planes)
+        self.ca = ChannelAttention(planes)
+        self.sa = SpatialAttention()
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self,x):
+        residual = x
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.ca(out)*out #spread mechanism
+        out = self.sa(out)*out #spread mechanism
+        if self.downsample is not None:
+            residual = self.downsample(x)
+        out +=residual
+        out = self.relu(out)
+        return out
+
