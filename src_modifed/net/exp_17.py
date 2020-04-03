@@ -2,7 +2,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-from net.module.modules import Reduction, ConcatOutput, weight_init, encoder_w,encoder_w_dropout,encoder_w_coord_dropout, Bottle2neck, ASPP, ConcatFusion
+from net.module.modules import Reduction, ConcatOutput, weight_init, encoder_w, Bottle2neck, ASPP, ConcatFusion
 
 
 class exp_17(nn.Module):
