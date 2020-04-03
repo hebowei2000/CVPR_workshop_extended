@@ -1163,4 +1163,86 @@ class SKLayer(nn.Module):
             self.fcs.append(nn.Linear(d,features))
         self.softmax = nn.Softmax(dim=1)
    def forward(self,x):
+       for i, conv in enumerate(self.convs):
+           fea = conv(x).unsqueeze_(dim=1)
+           if i == 0:
+               feas = fea
+            else:
+                feas = touch.cat([feas, fea], dim=1)
+        fea_U = torch.sum(feas, dim=1)
+        fea_s = fea_U.mean(-1).mean(-1)
+        fea_z = self.fc(fea_s)
+        for i, fc in enumerate(self.fcs):
+           # print(i, fea_z.shape)
+            vector = fc(fea_z).unsqueeze_(dim=1)
+           # print(i,vector.shape)
+            if i == 0:
+                attention_vectors = vector
+            else:
+                attention_vectors = torch.cat([attention_vectors, vector],dim=1)
+        attention_vectors = self.softmax(attention_vectors)
+        attention_vectors = attention_vectors.unsqueeze(-1).unsqueeze(-1)
+        fea_v = (feas * attention_vectors).sum(dim=1)
+        return fea_v
+
+## Convolutional block attention module
+class ChannelAttention(nn.Module):
+    def _init__(self,in_planes,ratio=16):
+        super(ChannelAttention,self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.max_pool = nn.AdaptiveMaxPool2d(1)
+
+        self.sharedMLP = nn.Sequential(
+                nn.Conv2d(in_planes, in_planes // ratio, 1, bias = False),
+                nn.ReLU(),
+                nn.Conv2d(in_planes // ratio, in_planes, 1, bias = False))
+        seld.sigmoid = nn.Sigmoid()
+    def forward(self,x):
+        avgout = self.sharedMLP(self.avg_pool(x))
+        maxout = self.sharedMLP(self.max_pool(x))
+        return self.sigmoid(avgout + maxout)
+
+class SpatialAttention(nn.Module):
+    def __init__(self,kernel_size=7):
+        super(SpatialAttention,self).__init__()
+        assert kernel_size in (3,7),
+        padding = 3 if kernel_size = 7 else 1
+
+        self.conv = nn.Conv2d(2,1,kernel_size,padding = padding, bias = False)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self,x):
+        avgout = torch.mean(x,dim=1,keepdim=True)
+        maxout,_ = torch.max(x,dim=1,keepdim=True)
+        x = torch.cat([avgout,maxout],dim=1)
+        x = self.conv(x)
+        return self.sigmoid(x)
+
+class BasicBlock(nn.Module):
+    expansion = 1
+    def __init__(self,inplanes,planes,stride =1, downsample = None):
+        super(BasicBlock, self).__init__()
+        self.conv1 = conv3x3(inplanes, planes, stride)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = conv3x3(planes,planes)
+        self.ca = ChannelAttention(planes)
+        self.sa = SpatialAttention()
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self,x):
+        residual = x
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.ca(out)*out #spread mechanism
+        out = self.sa(out)*out #spread mechanism
+        if self.downsample is not None:
+            residual = self.downsample(x)
+        out +=residual
+        out = self.relu(out)
+        return out
 
