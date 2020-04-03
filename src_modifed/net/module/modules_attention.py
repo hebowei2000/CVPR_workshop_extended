@@ -1162,11 +1162,11 @@ class SKLayer(nn.Module):
         for i in range(M):
             self.fcs.append(nn.Linear(d,features))
         self.softmax = nn.Softmax(dim=1)
-   def forward(self,x):
-       for i, conv in enumerate(self.convs):
-           fea = conv(x).unsqueeze_(dim=1)
-           if i == 0:
-               feas = fea
+    def forward(self,x):
+        for i, conv in enumerate(self.convs):
+            fea = conv(x).unsqueeze_(dim=1)
+            if i == 0:
+                feas = fea
             else:
                 feas = touch.cat([feas, fea], dim=1)
         fea_U = torch.sum(feas, dim=1)
