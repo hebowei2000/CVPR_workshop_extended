@@ -1151,8 +1151,8 @@ class SKLayer(nn.Module):
                         nn.Conv2d(features,
                                   features,
                                   kernel_size = 3 + i*2,
-                                  stride = stride
-                                  padding = 1 + i
+                                  stride = stride,
+                                  padding = 1 + i,
                                   groups=G),
                                   nn.BatchNorm2d(features),
                                   nn.ReLU(inplace=False))
