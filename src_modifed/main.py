@@ -138,6 +138,7 @@ def main():
 
     # build model
     model = globals()[args.model]()
+    model = nn.DataParallel(model)
     model.cuda()
 
     params = model.parameters()
