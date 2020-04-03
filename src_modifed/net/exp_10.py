@@ -2,14 +2,14 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-from net.module.modules import Reduction, ConcatOutput, weight_init, encoder_w,encoder_w_dropout, Bottle2neck, ASPP, ConcatFusion
+from net.module.modules import Reduction, ConcatOutput, weight_init, encoder_w, Bottle2neck, ASPP, ConcatFusion
 
 
 class exp_10(nn.Module):
     def __init__(self, channel=128):
         super(exp_10, self).__init__()
         self.channel = channel
-        self.encoder = encoder_w_dropout()
+        self.encoder = encoder_w()
 
         self.reduce_s0 = Reduction(64, channel)
         self.reduce_s1 = Reduction(128, channel)
